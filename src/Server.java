@@ -3,55 +3,58 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 public class Server {
-    public static void main(String[] args) {
-        int port = 1234;
+    private static final int port = 1234;
 
+    public static void main(String[] args) {
         try {
             ServerSocket ss = new ServerSocket(port);
-            System.out.println("Server: Esperando conexiones...");
+            Socket clientSocket = ss.accept();
+            System.err.println("Connexió acceptada.");
 
-            while (true) {
-                Socket s = ss.accept();
-                System.out.println("Server: Conexión establecida con un cliente");
+            // Crear un hilo para manejar la lectura de mensajes del cliente
+            new Thread(new ClientReader(clientSocket)).start();
 
-                // Thread para leer mensajes del cliente
-                Thread readThread = new Thread(() -> {
-                    try {
-                        InputStream is = s.getInputStream();
-                        DataInputStream dis = new DataInputStream(is);
-
-                        while (true) {
-                            String message = dis.readUTF();
-                            System.out.println("Cliente: " + message);
-                        }
-                    } catch (IOException e) {
-                        System.out.println("Error al leer datos del cliente: " + e.getMessage());
-                    }
-                });
-                readThread.start();
-
-                // Thread para enviar mensajes al cliente
-                Thread writeThread = new Thread(() -> {
-                    try {
-                        OutputStream os = s.getOutputStream();
-                        DataOutputStream dos = new DataOutputStream(os);
-                        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-
-                        while (true) {
-                            System.out.print("Server: ");
-                            String message = reader.readLine();
-
-                            dos.writeUTF(message);
-                            dos.flush();
-                        }
-                    } catch (IOException e) {
-                        System.out.println("Error al enviar datos al cliente: " + e.getMessage());
-                    }
-                });
-                writeThread.start();
+            // Loop para que el servidor pueda enviar mensajes al cliente
+            PrintWriter writer = new PrintWriter(clientSocket.getOutputStream(), true);
+            BufferedReader consoleReader = new BufferedReader(new InputStreamReader(System.in));
+            String serverMsg;
+            while ((serverMsg = consoleReader.readLine()) != null) {
+                writer.println(serverMsg);
+                if (serverMsg.equals("FI")) {
+                    break;
+                }
             }
+            writer.close();
+            ss.close();
         } catch (IOException e) {
-            System.out.println("Error en el servidor: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+}
+
+class ClientReader implements Runnable {
+    private Socket socket;
+
+    public ClientReader(Socket socket) {
+        this.socket = socket;
+    }
+
+    public void run() {
+        try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            String clientMsg;
+            while ((clientMsg = reader.readLine()) != null) {
+                System.out.println("Client: <<" + clientMsg + ">>");
+                if (clientMsg.equals("FI")) {
+                    break;
+                }
+            }
+            reader.close();
+            socket.close();
+            System.out.println("Connexió tancada.");
+            System.exit(0);
+        } catch (IOException e) {
+            System.out.println("\n");
         }
     }
 }

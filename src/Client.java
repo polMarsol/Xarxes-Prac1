@@ -1,60 +1,61 @@
-import Client.java.UnThread;
-
 import java.io.*;
 import java.net.Socket;
 
 public class Client {
+    private static final int port = 1234;
+    private static String host = "127.0.0.1";
+
     public static void main(String[] args) {
-        System.out.println("Client: Inicio intento de conexión");
-        String host = "127.0.0.1"; // Cambiar a la dirección IP del servidor si es necesario
-        int port = 1234;
-
+        if (args.length > 0) {
+            host = args[0];
+        }
         try {
-            Socket s = new Socket(host, port);
+            Socket socket = new Socket(host, port);
 
-            // Thread para leer mensajes del servidor
-            Thread readThread = new Thread(new UnThread(), "Client"){
-                try {
-                    InputStream is = s.getInputStream();
-                    DataInputStream dis = new DataInputStream(is);
+            // Crear un hilo para manejar la lectura de mensajes del servidor
+            new Thread(new ServerReader(socket)).start();
 
-                    while (true) {
-                        String message = dis.readUTF();
-                        System.out.println("Server: " + message);
-                    }
-                } catch (IOException e) {
-                    System.out.println("Error al leer datos del servidor: " + e.getMessage());
+            // Loop para que el cliente pueda enviar mensajes al servidor
+            PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
+            BufferedReader consoleReader = new BufferedReader(new InputStreamReader(System.in));
+            String clientMsg;
+            while ((clientMsg = consoleReader.readLine()) != null) {
+                writer.println(clientMsg);
+                if (clientMsg.equals("FI")) {
+                    break;
                 }
-            });
-            readThread.start();
+            }
+            writer.close();
+            socket.close();
+            System.exit(0);
+        } catch (IOException e) {
+            System.err.println();
+        }
+    }
+}
 
-            // Thread para enviar mensajes al servidor
-            Thread writeThread = new Thread(() -> {
-                try {
-                    OutputStream os = s.getOutputStream();
-                    DataOutputStream dos = new DataOutputStream(os);
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+class ServerReader implements Runnable {
+    private Socket socket;
 
-                    while (true) {
-                        System.out.print("Cliente: ");
-                        String message = reader.readLine();
+    public ServerReader(Socket socket) {
+        this.socket = socket;
+    }
 
-                        dos.writeUTF(message);
-                        dos.flush();
-                    }
-                } catch (IOException e) {
-                    System.out.println("Error al enviar datos al servidor: " + e.getMessage());
+    public void run() {
+        try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            String serverMsg;
+            while ((serverMsg = reader.readLine()) != null) {
+                System.out.println("Server: <<" + serverMsg + ">>");
+                if (serverMsg.equals("FI")) {
+                    break;
                 }
-            });
-            writeThread.start();
-
-            // Esperar a que ambos threads terminen
-            readThread.join();
-            writeThread.join();
-
-            s.close();
-        } catch (IOException | InterruptedException e) {
-            System.out.println("Error en la conexión: " + e.getMessage());
+            }
+            reader.close();
+            socket.close();
+            System.exit(0);
+        } catch (IOException e) {
+            System.out.println("\n");
         }
     }
 }
