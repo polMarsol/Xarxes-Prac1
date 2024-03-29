@@ -1,61 +1,99 @@
 import java.io.*;
 import java.net.Socket;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Client {
     private static final int port = 1234;
     private static String host = "127.0.0.1";
+    private static final AtomicBoolean isTerminated = new AtomicBoolean(false);
+    private static final AtomicBoolean isNotAvailable = new AtomicBoolean(false);
+
 
     public static void main(String[] args) {
         if (args.length > 0) {
             host = args[0];
         }
         try {
-            Socket socket = new Socket(host, port);
+            if(!isNotAvailable.get()) {
+                Socket socket = new Socket(host, port);
+                System.err.println("Connexió acceptada.");
+                isNotAvailable.set(true);
+                Thread tR = new Thread(new threadClientR(socket));
+                Thread tW = new Thread(new threadClientW(socket));
+                tR.start();
+                tW.start();
+                tR.join();
+                tW.join();
 
-            // Crear un hilo para manejar la lectura de mensajes del servidor
-            new Thread(new ServerReader(socket)).start();
-
-            // Loop para que el cliente pueda enviar mensajes al servidor
-            PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
-            BufferedReader consoleReader = new BufferedReader(new InputStreamReader(System.in));
-            String clientMsg;
-            while ((clientMsg = consoleReader.readLine()) != null) {
-                writer.println(clientMsg);
-                if (clientMsg.equals("FI")) {
-                    break;
-                }
+                System.err.println("Connexió tancada.");
+                socket.close();
+                System.exit(0);
+            } else {
+                System.err.println("Error, server ocupat");
+                System.exit(1);
             }
-            writer.close();
-            socket.close();
-            System.exit(0);
-        } catch (IOException e) {
-            System.err.println();
+        } catch (IOException | InterruptedException e) {
+            System.err.println("Connection refused.");
         }
     }
-}
 
-class ServerReader implements Runnable {
-    private Socket socket;
+    private static class threadClientR implements Runnable {
+        Socket s;
 
-    public ServerReader(Socket socket) {
-        this.socket = socket;
+        private threadClientR(Socket s) {
+            this.s = s;
+        }
+
+        public void run() {
+            try {
+                DataInputStream dis = new DataInputStream(s.getInputStream());
+                DataOutputStream dos = new DataOutputStream(s.getOutputStream());
+                String str = "";
+
+                while (!isTerminated.get() && !str.equals("FI")) {
+                    str = dis.readUTF();
+                    System.out.println("Server: \"" + str + "\"");
+                    dos.flush();
+                }
+
+                dos.close();
+                dis.close();
+                s.close();
+                System.err.println("Connexió tancada.");
+                System.exit(0);
+            } catch (IOException e) {
+
+            }
+        }
     }
 
-    public void run() {
-        try {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            String serverMsg;
-            while ((serverMsg = reader.readLine()) != null) {
-                System.out.println("Server: <<" + serverMsg + ">>");
-                if (serverMsg.equals("FI")) {
-                    break;
+    private static class threadClientW implements Runnable {
+        Socket s;
+
+        private threadClientW(Socket s) {
+            this.s = s;
+        }
+
+        public void run() {
+            try {
+                InputStream consola = System.in;
+                BufferedReader d = new BufferedReader(new InputStreamReader(consola));
+                String entrada = "";
+                DataOutputStream dos = new DataOutputStream(s.getOutputStream());
+                DataInputStream dis = new DataInputStream(s.getInputStream());
+                while (!isTerminated.get() && !entrada.equals("FI")) {
+                    entrada = d.readLine();
+                    if (!entrada.isEmpty()) {
+                        dos.writeUTF(entrada);
+                    }
+                    dos.flush();
                 }
+                dos.close();
+                dis.close();
+                s.close();
+            } catch (IOException e) {
+
             }
-            reader.close();
-            socket.close();
-            System.exit(0);
-        } catch (IOException e) {
-            System.out.println("\n");
         }
     }
 }
