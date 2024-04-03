@@ -13,16 +13,16 @@ public class Server {
 
             // Accept only one client
             Socket s = ss.accept();
-                Thread tW = new Thread(new threadServerW(s));
-                Thread tR = new Thread(new threadServerR(s));
-                System.err.println("Connexió acceptada.");
+            Thread tW = new Thread(new threadServerW(s));
+            Thread tR = new Thread(new threadServerR(s));
+            System.err.println("Connexió acceptada.");
 
-                tR.start();
-                tW.start();
-                tR.join();
-                tW.join();
+            tR.start();
+            tW.start();
+            tR.join();
+            tW.join();
 
-                s.close();
+            s.close();
         } catch (IOException | InterruptedException e) {
             System.err.println("Servidor no disponible. Ja està en ús.");
         }
@@ -83,8 +83,8 @@ public class Server {
                 dos.close();
                 s.close();
 
-            } catch (IOException e) {
-                System.err.println("Writing error: "+ e.getMessage());
+            } catch (Exception e) {
+                //System.err.println("Writing error: "+ e.getMessage());
             }
         }
     }

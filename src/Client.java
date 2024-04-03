@@ -11,16 +11,16 @@ public class Client {
             host = args[0];
         }
         try {
-                Socket socket = new Socket(host, port);
-                Thread tR = new Thread(new threadClientR(socket));
-                Thread tW = new Thread(new threadClientW(socket));
+            Socket socket = new Socket(host, port);
+            Thread tR = new Thread(new threadClientR(socket));
+            Thread tW = new Thread(new threadClientW(socket));
 
-                tR.start();
-                tW.start();
-                tR.join();
-                tW.join();
+            tR.start();
+            tW.start();
+            tR.join();
+            tW.join();
 
-                socket.close();
+            socket.close();
 
         } catch (IOException | InterruptedException e) {
             System.err.println("Servidor no disponible.");
@@ -82,9 +82,8 @@ public class Client {
                 dos.close();
                 dis.close();
                 s.close();
-            } catch (IOException e) {
-
-                System.err.println("Writing error: "+ e.getMessage());
+            } catch (Exception e) {
+                //System.err.println("Writing error: "+ e.getMessage());
             }
         }
     }
