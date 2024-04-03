@@ -5,7 +5,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Server {
     private static final int port = 1234;
-    private static final AtomicBoolean isTerminated = new AtomicBoolean(false);
 
 
     public static void main(String[] args) {
@@ -17,51 +16,17 @@ public class Server {
                 Thread tW = new Thread(new threadServerW(s));
                 Thread tR = new Thread(new threadServerR(s));
                 System.err.println("Connexió acceptada.");
-                tW.start();
+
                 tR.start();
-                tW.join();
+                tW.start();
                 tR.join();
-                System.err.println("Connexió tancada.");
+                tW.join();
+
                 s.close();
-                System.exit(0);
         } catch (IOException | InterruptedException e) {
-            System.err.println("Server not available");
+            System.err.println("Servidor no disponible. Ja està en ús.");
         }
     }
-
-    private static class threadServerW implements Runnable {
-        private final Socket s;
-
-        public threadServerW(Socket s) {
-            this.s = s;
-        }
-
-        public void run() {
-            try {
-                DataInputStream dis = new DataInputStream(s.getInputStream());
-                DataOutputStream dos = new DataOutputStream(s.getOutputStream());
-                InputStream consola = System.in;
-                BufferedReader d = new BufferedReader(new InputStreamReader(consola));
-                String str = "";
-
-                while (!isTerminated.get() && !str.equals("FI")) {
-                    str = d.readLine();
-                    if (!str.isEmpty()) {
-                        dos.writeUTF(str);
-                    }
-                    dos.flush();
-                }
-                dis.close();
-                dos.close();
-                s.close();
-                System.err.println("Connexió tancada.");
-                System.exit(0);
-            } catch (IOException e) {
-                /*System.err.println("Writing error: "+ e.getMessage());*/
-            }
-        }
-    }
-
     private static class threadServerR implements Runnable {
         private final Socket s;
 
@@ -75,18 +40,51 @@ public class Server {
                 DataOutputStream dos = new DataOutputStream(s.getOutputStream());
                 String str = "";
 
-                while (!isTerminated.get() && !str.equals("FI")) {
+                while (!str.equals("FI")) {
                     str = dis.readUTF();
-                    System.out.println("Client: \"" + str + "\"");
+                    System.out.println("Client: <<" + str + ">>");
                     dos.flush();
                 }
                 dis.close();
                 dos.close();
                 s.close();
-                System.err.println("Connexió tancada.");
+
                 System.exit(0);
             } catch (IOException e) {
-                /*System.err.println(e.getMessage());*/
+                System.out.println("Connexió tancada.");
+                System.exit(0);
+            }
+        }
+    }
+    private static class threadServerW implements Runnable {
+        private final Socket s;
+
+        public threadServerW(Socket s) {
+            this.s = s;
+        }
+
+        public void run() {
+            try {
+                DataInputStream dis = new DataInputStream(s.getInputStream());
+                DataOutputStream dos = new DataOutputStream(s.getOutputStream());
+                dos.writeUTF("Connexió acceptada.");
+                InputStream consola = System.in;
+                BufferedReader d = new BufferedReader(new InputStreamReader(consola));
+                String str = "";
+
+                while (!str.equals("FI")) {
+                    str = d.readLine().trim();
+                    if (!str.trim().isEmpty()) { ///////////////MIRAR
+                        dos.writeUTF(str);
+                    }
+                    dos.flush();
+                }
+                dis.close();
+                dos.close();
+                s.close();
+
+            } catch (IOException e) {
+                System.err.println("Writing error: "+ e.getMessage());
             }
         }
     }
