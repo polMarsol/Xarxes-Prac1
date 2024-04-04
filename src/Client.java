@@ -1,31 +1,35 @@
+//Feta en grup --> AUTORS: Hugo Fernandez Sisquella i Pol Marsol Torras
+
 import java.io.*;
 import java.net.Socket;
 
-
 public class Client {
     private static final int port = 1234;
-    private static String host = "127.0.0.1";
+    private static String host = "127.0.0.1"; // Adreça IP del servidor
+
     public static void main(String[] args) {
         if (args.length > 0) {
-            host = args[0];
+            host = args[0]; // Si s'especifica una adreça IP com a argument
         }
         try {
-            Socket socket = new Socket(host, port);
-            Thread tR = new Thread(new threadClientR(socket));
-            Thread tW = new Thread(new threadClientW(socket));
+            Socket socket = new Socket(host, port); // Connectar-se al servidor
+            Thread tR = new Thread(new threadClientR(socket)); // Thread per rebre dades del servidor
+            Thread tW = new Thread(new threadClientW(socket)); // Thread per enviar dades al servidor
 
-            tR.start();
+            tR.start(); // Iniciar-los
             tW.start();
             tR.join();
-            tW.join();
+            tW.join(); // Esperar que acabin
 
-            socket.close();
+            socket.close(); // Tancar la connexió amb el servidor
 
         } catch (IOException | InterruptedException e) {
-            System.err.println("Servidor no disponible.");
+            System.err.println("Servidor no disponible."); // Manejar errors d'entrada/sortida o interrupcions
+            // quan el servidor no està obert.
         }
     }
 
+    // Thread per rebre dades del servidor
     private static class threadClientR implements Runnable {
         Socket s;
 
@@ -35,18 +39,15 @@ public class Client {
 
         public void run() {
             try {
-                DataInputStream dis = new DataInputStream(s.getInputStream());
-                DataOutputStream dos = new DataOutputStream(s.getOutputStream());
+                DataInputStream dis = new DataInputStream(s.getInputStream()); //Obrir canal de lectura
                 String str = "";
                 while (!str.equals("FI")) {
-                    str = dis.readUTF();
+                    str = dis.readUTF(); // Llegir el missatge del servidor
                     System.out.println("Server: <<" + str + ">>");
-                    dos.flush();
                 }
-                dos.close();
                 dis.close();
                 s.close();
-                System.exit(0);
+                System.exit(0); // Sortir del programa
             } catch (IOException e) {
                 System.out.println("Connexió tancada.");
                 System.exit(0);
@@ -54,6 +55,7 @@ public class Client {
         }
     }
 
+    // Fil per enviar dades al servidor
     private static class threadClientW implements Runnable {
         Socket s;
 
@@ -70,17 +72,20 @@ public class Client {
                 DataInputStream dis = new DataInputStream(s.getInputStream());
 
                 while (!entrada.equals("FI")) {
-                    entrada = d.readLine().trim();
-                    if (!entrada.trim().isEmpty()) {
-                        dos.writeUTF(entrada);
+                    entrada = d.readLine().trim(); // Llegir l'entrada de l'usuari borrant els
+                    //espais inicials i finals per evitar els que són innecessaris. Serveix d'ajuda per la lectura
+
+                    if (!entrada.trim().isEmpty()) { //Evitar missatges buits
+                        dos.writeUTF(entrada); // Enviar el missatge al servidor
                     }
-                    dos.flush();
+                    dos.flush(); //Per esborrar el buffer i que no s'acumulin els missatges i es puguin enviar
+                    // immediatament.
                 }
                 dos.close();
                 dis.close();
                 s.close();
             } catch (Exception e) {
-                System.exit(0);
+                System.exit(0); // Sortir del programa
             }
         }
     }
