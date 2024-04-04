@@ -4,7 +4,7 @@ import java.net.Socket;
 
 public class Server {
     private static final int port = 1234;
-    private static boolean clienteConectado = false;
+    private static boolean clientConnectat = false;
 
     public static void main(String[] args) {
         try {
@@ -12,8 +12,8 @@ public class Server {
 
             while (true) {
                 Socket s = ss.accept();
-                if (!clienteConectado) {
-                    clienteConectado = true;
+                if (!clientConnectat) {
+                    clientConnectat = true;
 
                     Thread tW = new Thread(new threadServerW(s));
                     Thread tR = new Thread(new threadServerR(s));
