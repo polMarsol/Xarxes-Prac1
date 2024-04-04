@@ -5,7 +5,7 @@ import java.net.Socket;
 
 public class Client {
     private static final int port = 1234;
-    private static String host = "127.0.0.1"; // Adreça IP del servidor
+    private static String host = "127.0.0.1"; //  Adreça IP del servidor
 
     public static void main(String[] args) {
         if (args.length > 0) {

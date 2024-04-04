@@ -6,7 +6,7 @@ import java.net.Socket;
 
 public class Server {
     private static final int port = 1234;
-    private static boolean clientConnectat = false; // Variable per controlar si ja hi ha un client connectat
+    private static boolean clientConnectat = false; //  Variable per controlar si ja hi ha un client connectat
 
     public static void main(String[] args) {
         try {
