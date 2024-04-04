@@ -1,11 +1,10 @@
 import java.io.*;
 import java.net.Socket;
-import java.util.concurrent.atomic.AtomicBoolean;
+
 
 public class Client {
     private static final int port = 1234;
     private static String host = "127.0.0.1";
-
     public static void main(String[] args) {
         if (args.length > 0) {
             host = args[0];
@@ -39,13 +38,11 @@ public class Client {
                 DataInputStream dis = new DataInputStream(s.getInputStream());
                 DataOutputStream dos = new DataOutputStream(s.getOutputStream());
                 String str = "";
-
                 while (!str.equals("FI")) {
                     str = dis.readUTF();
                     System.out.println("Server: <<" + str + ">>");
                     dos.flush();
                 }
-
                 dos.close();
                 dis.close();
                 s.close();
@@ -83,7 +80,7 @@ public class Client {
                 dis.close();
                 s.close();
             } catch (Exception e) {
-                //System.err.println("Writing error: "+ e.getMessage());
+                System.exit(0);
             }
         }
     }

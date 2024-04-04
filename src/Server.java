@@ -1,32 +1,38 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Server {
     private static final int port = 1234;
-
+    private static boolean clienteConectado = false;
 
     public static void main(String[] args) {
         try {
             ServerSocket ss = new ServerSocket(port);
 
-            // Accept only one client
-            Socket s = ss.accept();
-            Thread tW = new Thread(new threadServerW(s));
-            Thread tR = new Thread(new threadServerR(s));
-            System.err.println("Connexió acceptada.");
+            while (true) {
+                Socket s = ss.accept();
+                if (!clienteConectado) {
+                    clienteConectado = true;
 
-            tR.start();
-            tW.start();
-            tR.join();
-            tW.join();
+                    Thread tW = new Thread(new threadServerW(s));
+                    Thread tR = new Thread(new threadServerR(s));
+                    System.err.println("Connexió acceptada.");
 
-            s.close();
-        } catch (IOException | InterruptedException e) {
+                    tR.start();
+                    tW.start();
+                } else {
+                    DataOutputStream dos = new DataOutputStream(s.getOutputStream());
+                    dos.writeUTF("Servidor no disponible");
+                    dos.flush();
+                    s.close();
+                }
+            }
+        } catch (IOException e) {
             System.err.println("Servidor no disponible. Ja està en ús.");
         }
     }
+
     private static class threadServerR implements Runnable {
         private final Socket s;
 
@@ -38,17 +44,20 @@ public class Server {
             try {
                 DataInputStream dis = new DataInputStream(s.getInputStream());
                 DataOutputStream dos = new DataOutputStream(s.getOutputStream());
-                String str = "";
+                String str;
 
-                while (!str.equals("FI")) {
+                while (true) {
                     str = dis.readUTF();
+                    if (str.equals("FI")) {
+                        System.out.println("Client: <<" + str + ">>");
+                        break;
+                    }
                     System.out.println("Client: <<" + str + ">>");
                     dos.flush();
                 }
                 dis.close();
                 dos.close();
                 s.close();
-
                 System.exit(0);
             } catch (IOException e) {
                 System.out.println("Connexió tancada.");
@@ -56,6 +65,8 @@ public class Server {
             }
         }
     }
+
+
     private static class threadServerW implements Runnable {
         private final Socket s;
 
@@ -74,7 +85,7 @@ public class Server {
 
                 while (!str.equals("FI")) {
                     str = d.readLine().trim();
-                    if (!str.trim().isEmpty()) { ///////////////MIRAR
+                    if (!str.trim().isEmpty()) {
                         dos.writeUTF(str);
                     }
                     dos.flush();
@@ -84,7 +95,7 @@ public class Server {
                 s.close();
 
             } catch (Exception e) {
-                //System.err.println("Writing error: "+ e.getMessage());
+                System.exit(0);
             }
         }
     }
